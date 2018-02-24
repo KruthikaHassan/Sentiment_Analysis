@@ -30,17 +30,26 @@ class WordVector:
         file = open(filename,'r')
         for line in file.readlines():
             row = line.strip().split(' ')
+
+            if len(row[1:]) != 25:
+                continue
+
             vocab.append(row[0])
-            embd.append(row[1:])
+            embd.append([ float(s) for s in row[1:] ])
         file.close()
         return vocab, embd
 
 
-
 class Dataset:
 
-    def __init__(self, data_file_path, vocab):
+    def __init__(self, data_file_path, wordVectors):
         self.text_token_flags = re.MULTILINE | re.DOTALL
+
+        self.all_vocab = wordVectors.vocab
+        self.all_embeddings = wordVectors.embeddings
+
+        self._used_vocab = []
+        self._used_embeddigs = []
 
         start_time = time.time()
         print("Loading File:", data_file_path)
@@ -50,7 +59,7 @@ class Dataset:
 
         start_time = time.time()
         print("Vectorizing text:", len(self._text))
-        self._vec_text = self.vectorize_text(self._text, vocab)
+        self._vec_text = self.vectorize_text()
         time_taken = time.time() - start_time
         print("%d lines of text vectorized in %.3f secs!" % (len(self._vec_text), time_taken))
 
@@ -75,6 +84,14 @@ class Dataset:
     @property 
     def max_text_length(self):
         return len(self._vec_text[0])
+    
+    @property 
+    def vocab(self):
+        return self._used_vocab
+    
+    @property
+    def embeddings(self):
+        return np.array(self._used_embeddigs, dtype=np.float32)
 
 ###################################### Sending batch wise data ################################
 
@@ -94,12 +111,28 @@ class Dataset:
         data  = [row for row in csv.reader(file)]
         
         text, labels = [], []
-        for row in data[1:11]:
+        for row in data[1:101]:
             text.append(row[-1])
             labels.append(self.get_vect_label(row[1]))
         return text, labels
 
 ###################################### Data Conversion ##########################################
+
+
+    def vocab_index(self, word):
+
+        all_embeddings = self.all_embeddings
+        all_vocab      = self.all_vocab
+
+        if word not in self._used_vocab:
+            if word in all_vocab:
+                index = all_vocab.index(word)
+                self._used_vocab.append(word)
+                self._used_embeddigs.append(all_embeddings[index])
+
+        return self._used_vocab.index(word)
+
+
 
     def get_vect_label(self, label_text):
 
@@ -117,20 +150,20 @@ class Dataset:
         # elif label_text == 'irrelevant':
         #     return [0, 0, 0, 1]
 
-    def vectorize_text(self, text, vocab):
+    def vectorize_text(self):
         start_time = time.time()
-        unknown_word_index = vocab.index('<unknown>')
+        unknown_word_index = self.vocab_index('<unknown>')
         text_vector = []
         words_without_vector = []
         line_num = 0
         
         max_line_length = 0
-        for line in text:
+        for line in self._text:
             line_vec = []
             split_line = self.tokenize(line).split()
             for word in split_line:
                 try:
-                    word_vec = vocab.index(word)
+                    word_vec = self.vocab_index(word)
                 except ValueError:
                     if word not in words_without_vector:
                         words_without_vector.append(word)

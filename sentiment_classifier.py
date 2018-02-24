@@ -17,22 +17,22 @@ class SentimentClassifier:
 
         print("Data1 Setup  Done")
 
-        print(len(WordVectorEmbeddings))
+        print(WordVectorEmbeddings.shape)
 
         data = tf.nn.embedding_lookup(WordVectorEmbeddings, self._input_data)
         
         print("Data Setup Done")
 
         # LSTM
-        basic_lstmCell = tf.contrib.rnn.BasicLSTMCell(lstmUnits)
+        basic_lstmCell = tf.contrib.rnn.BasicLSTMCell(config.lstmUnits)
         lstmCell       = tf.contrib.rnn.DropoutWrapper(cell=basic_lstmCell, output_keep_prob=0.75)
         value, _       = tf.nn.dynamic_rnn(lstmCell, data, dtype=tf.float32)
         
         print("LSTM Setup Done")
 
         # Prediction
-        weight           = tf.Variable(tf.truncated_normal([lstmUnits, numClasses]))
-        bias             = tf.Variable(tf.constant(0.1, shape=[numClasses]))
+        weight           = tf.Variable(tf.truncated_normal([config.lstmUnits, config.numClasses]))
+        bias             = tf.Variable(tf.constant(0.1, shape=[config.numClasses]))
         value            = tf.transpose(value, [1, 0, 2])
         last             = tf.gather(value, int(value.get_shape()[0]) - 1)
         self._prediction = (tf.matmul(last, weight) + bias)
@@ -43,23 +43,27 @@ class SentimentClassifier:
         # Setup optimizer
         correctPred     = tf.equal(tf.argmax(self._prediction,1), tf.argmax(self._labels,1))
         accuracy        = tf.reduce_mean(tf.cast(correctPred, tf.float32))
-        loss            = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=prediction, labels=labels))
+        loss            = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self._prediction, labels=self._labels))
         self._optimizer = tf.train.AdamOptimizer().minimize(loss)
         
         print("Optimizer Setup Done")
+
+        # Session
+        self._sess  = tf.InteractiveSession()
+        self._saver = tf.train.Saver()
+
+        print("Session started")
 
         # Setup summary log
         logdir = "tensorboard/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "/"
         tf.summary.scalar('Loss', loss)
         tf.summary.scalar('Accuracy', accuracy)
         self._merged_summary = tf.summary.merge_all()
-        self._writer         = tf.summary.FileWriter(logdir, sess.graph)
+        self._writer         = tf.summary.FileWriter(logdir, self._sess.graph)
 
         print("Summary Setup Done")
 
-        # Session
-        self._sess  = tf.InteractiveSession()
-        self._saver = tf.train.Saver()
+        
    
 
     def fit(self, train_data, iterations):

@@ -26,7 +26,7 @@ def main(data_file_path, word_vec_filename):
     word_vectors = WordVector(word_vec_filename)
 
     # Get data set ready
-    data_set = Dataset(data_file_path, word_vectors.vocab)
+    data_set = Dataset(data_file_path, word_vectors)
 
 
     # Set some config params for this dataset
@@ -42,7 +42,7 @@ def main(data_file_path, word_vec_filename):
     
     print(config.__dict__)
 
-    classifier = SentimentClassifier(config, word_vectors.embeddings)
+    classifier = SentimentClassifier(config, data_set.embeddings)
 
     print(classifier.__dict__)
     # classifier.fit(data_set.traini, la)
