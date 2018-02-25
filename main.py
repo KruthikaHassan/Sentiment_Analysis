@@ -36,18 +36,14 @@ def main(data_file_path, word_vec_filename):
     config.numClasses    =  data_set.num_classes
     config.maxSeqLength  =  data_set.max_text_length
     config.numDimensions =  len(word_vectors.embeddings[0])
-    
     config.lstmUnits     =  12
     config.iterations    =  100
     
-    print(config.__dict__)
-
     classifier = SentimentClassifier(config, data_set.embeddings)
 
-    print(classifier.__dict__)
-    # classifier.fit(data_set.traini, la)
+    classifier.fit(data_set, 200)
 
-    # predictions = classifier.predict(data_set.data, labels)
+    print(classifier.accuracy(data_set))
 
     # accuraccy(exptected_labels, predicted_labes)
 

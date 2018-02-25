@@ -42,7 +42,7 @@ class SentimentClassifier:
 
         # Setup optimizer
         correctPred     = tf.equal(tf.argmax(self._prediction,1), tf.argmax(self._labels,1))
-        accuracy        = tf.reduce_mean(tf.cast(correctPred, tf.float32))
+        self._accuracy  = tf.reduce_mean(tf.cast(correctPred, tf.float32))
         loss            = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self._prediction, labels=self._labels))
         self._optimizer = tf.train.AdamOptimizer().minimize(loss)
         
@@ -57,7 +57,7 @@ class SentimentClassifier:
         # Setup summary log
         logdir = "tensorboard/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "/"
         tf.summary.scalar('Loss', loss)
-        tf.summary.scalar('Accuracy', accuracy)
+        tf.summary.scalar('Accuracy', self._accuracy)
         self._merged_summary = tf.summary.merge_all()
         self._writer         = tf.summary.FileWriter(logdir, self._sess.graph)
 
@@ -81,7 +81,7 @@ class SentimentClassifier:
         sess.run(tf.global_variables_initializer())
 
         for i in range(iterations):
-           nextBatch, nextBatchLabels = train_data.get_next_train_batch()
+           nextBatch, nextBatchLabels = train_data.get_next_batch()
            sess.run(optimizer, {input_data: nextBatch, labels: nextBatchLabels})
 
            #Write summary to Tensorboard
@@ -90,12 +90,20 @@ class SentimentClassifier:
                writer.add_summary(summary, i)
 
            #Save the network every 10,000 training iterations
-           if (i % 10000 == 0 and i != 0):
+           if (i % 100 == 0 and i != 0):
                save_path = saver.save(sess, "models/pretrained_lstm.ckpt", global_step=i)
                print("saved to %s" % save_path)
         writer.close()
         
         return None
     
-    def predict(self):
+    def predict(self, test_data, iterations):
         pass
+
+    def accuracy(self, test_data):
+        sess           = self._sess
+        accuracy       = self._accuracy
+        input_data     = self._input_data
+        labels         = self._labels
+        nextBatch, nextBatchLabels = test_data.get_next_batch()
+        return sess.run(accuracy, {input_data: nextBatch, labels: nextBatchLabels})

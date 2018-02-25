@@ -99,7 +99,7 @@ class Dataset:
         # split data into test and train
         pass
 
-    def get_next_train_batch(self, batch_size=None):
+    def get_next_batch(self, batch_size=None):
 
         # For now lets return everything
         return self._vec_text, self._labels
@@ -111,7 +111,7 @@ class Dataset:
         data  = [row for row in csv.reader(file)]
         
         text, labels = [], []
-        for row in data[1:101]:
+        for row in data[1:]:
             text.append(row[-1])
             labels.append(self.get_vect_label(row[1]))
         return text, labels
@@ -175,7 +175,7 @@ class Dataset:
                 max_line_length = len(line_vec)
 
             line_num += 1
-            if line_num % 100 == 0:
+            if line_num % 1000 == 0:
                 print("Processing line: %d, time = %.2f" % (line_num, time.time()- start_time))
 
         # Normalize indicies
