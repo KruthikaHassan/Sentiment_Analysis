@@ -31,7 +31,10 @@ class WordVector:
         for line in file.readlines():
             row = line.strip().split(' ')
 
-            if len(row[1:]) != 25:
+            dim= len(row[1:])
+            isexpected_dim = (dim == 25) or (dim == 50) or (dim == 100) or (dim == 200)
+
+            if not isexpected_dim:
                 continue
 
             vocab.append(row[0])
@@ -58,10 +61,10 @@ class Dataset:
         print("%s Loaded: %.3f secs!" % (data_file_path, time_taken))
 
         start_time = time.time()
-        print("Vectorizing text:", len(self._text))
+        print("Vectorizing text: %d lines" % (len(self._text)))
         self._vec_text = self.vectorize_text()
         time_taken = time.time() - start_time
-        print("%d lines of text vectorized in %.3f secs!" % (len(self._vec_text), time_taken))
+        print("\n %d lines of text vectorized in %.3f secs!" % (len(self._vec_text), time_taken))
 
 ####################################### Useful properties #####################################
 
@@ -151,13 +154,12 @@ class Dataset:
         #     return [0, 0, 0, 1]
 
     def vectorize_text(self):
-        start_time = time.time()
         unknown_word_index = self.vocab_index('<unknown>')
         text_vector = []
         words_without_vector = []
         line_num = 0
-        
         max_line_length = 0
+        progress_count = len(self._text) // 100
         for line in self._text:
             line_vec = []
             split_line = self.tokenize(line).split()
@@ -175,8 +177,10 @@ class Dataset:
                 max_line_length = len(line_vec)
 
             line_num += 1
-            if line_num % 1000 == 0:
-                print("Processing line: %d, time = %.2f" % (line_num, time.time()- start_time))
+            
+            if line_num % progress_count == 0:
+                print('.', end='', flush=True)
+            #    print("Processing line: %d, time = %.2f" % (line_num, time.time()- start_time))
 
         # Normalize indicies
         total_lines = line_num
@@ -185,8 +189,6 @@ class Dataset:
             lineLen = len(text_vector[line_num])
             normalized_text_vector[line_num, 0:lineLen] = text_vector[line_num]
         
-        print(max_line_length)
-        #print("No vector words:", len(words_without_vector))
         return normalized_text_vector
 
 ######################################## Text Cleanup  ##############################################

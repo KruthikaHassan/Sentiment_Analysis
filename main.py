@@ -17,7 +17,7 @@ class Configuration:
 def accuraccy():
     pass
 
-def main(data_file_path, word_vec_filename):
+def main(data_file_path, word_vec_filename, lstmUnits, iterations):
     """ Main function """
 
     
@@ -28,7 +28,6 @@ def main(data_file_path, word_vec_filename):
     # Get data set ready
     data_set = Dataset(data_file_path, word_vectors)
 
-
     # Set some config params for this dataset
     config = Configuration()
 
@@ -36,28 +35,34 @@ def main(data_file_path, word_vec_filename):
     config.numClasses    =  data_set.num_classes
     config.maxSeqLength  =  data_set.max_text_length
     config.numDimensions =  len(word_vectors.embeddings[0])
-    config.lstmUnits     =  12
-    config.iterations    =  100
+    config.lstmUnits     =  lstmUnits
+    config.iterations    =  iterations
     
+    attrs = vars(config)
+    print("Configuration:")
+    for item in attrs:
+        print("%s : %s" % (item, attrs[item]))
+
     classifier = SentimentClassifier(config, data_set.embeddings)
 
-    classifier.fit(data_set, 200)
+    classifier.fit(data_set, config.iterations)
 
-    print(classifier.accuracy(data_set))
+    print("Accuracy = %.2f %%" % (classifier.accuracy(data_set) * 100))
 
     # accuraccy(exptected_labels, predicted_labes)
 
 if __name__ == "__main__":
     ''' Start the program here '''
 
-    if len(sys.argv) != 3:
-        print("Please provide Training and Test files to work with!")
-        print("Usage: $python3 main.py train.csv")
+    if len(sys.argv) != 5:
+        print("Usage: $python3 main.py train.csv glove_vec.txt lstmunits iterations")
         exit()
 
     # Parrse arguments 
     data_file_path = sys.argv[1]
     word_vec_filename = sys.argv[2]
+    lstmUnits = int(sys.argv[3])
+    iterations = int(sys.argv[4])
     
     # Run the program!
-    main(data_file_path, word_vec_filename)
+    main(data_file_path, word_vec_filename, lstmUnits, iterations)

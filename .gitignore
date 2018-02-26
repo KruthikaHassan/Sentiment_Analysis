@@ -2,3 +2,4 @@
 __pycache__/*
 tensorboard/*
 models/
+word_vectors/
