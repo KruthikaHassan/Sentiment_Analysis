@@ -3,3 +3,4 @@ __pycache__/*
 tensorboard/*
 models/
 word_vectors/
+.DS_Store
