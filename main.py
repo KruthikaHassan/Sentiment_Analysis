@@ -9,10 +9,11 @@ __email__ = "kruthika@uw.edu"
 import sys
 import numpy as np
 import random
-from word_vectors import WordVector
-from word_vectors import LoadWV
+from vocab_vectors import VocabVector
+from vocab_vectors import build_vocab
 from data_set import DataSet
 from data_set import LoadCSV
+from data_set import split_dataset
 from sentiment_classifier import SentimentClassifier
 
 class Configuration:
@@ -22,57 +23,22 @@ class Configuration:
         for item in attrs:
             print("%s : %s" % (item, attrs[item]))
 
-def split_dataset(dataset, train_percent=None):
-    ''' Splits the dataset into train and test '''
 
-    if not train_percent or int(train_percent) > 100:
-        train_percent = 80
-    
-    print("Splitting Train:Test %d:%d %%" % (train_percent, 100-train_percent) )
-        
-    # Shuffle / Randamize the indecies
-    data_indecies = [i for i in range(dataset.num_records)]
-    random.shuffle(data_indecies)
-
-    # How many traininig data we need? 
-    num_train_records = int(train_percent) * dataset.num_records // 100
-
-    # Init train and test 
-    train_text, train_labels = [], []
-    test_text, test_labels = [], []
-
-    for index in data_indecies:
-        if index < num_train_records:
-            train_labels.append(dataset.labels[index])
-            train_text.append(dataset.text[index])
-        else:
-            test_labels.append(dataset.labels[index])
-            test_text.append(dataset.text[index])
-    
-    train_dataset = DataSet(train_text, train_labels, dataset.isVectorized, dataset.word_vector)
-    test_dataset  = DataSet(test_text, test_labels, dataset.isVectorized, dataset.word_vector)
-
-    return train_dataset, test_dataset
 
 def main(data_file_path, word_vec_filename, batch_size=50, lstmUnits=24, epochs=10):
     """ Main function """
 
     # Raw dataset
     data_set = LoadCSV(data_file_path)
-    #data_set.vectorize_text(word_vector=all_words_vector, normalized_length=50)
-    #word_vector = data_set.word_vector
-
-    # Global word_vector
-    all_words_vector = LoadWV(word_vec_filename)
+    #vocab_vector = build_vocab(data_set.text)
+    #data_set.vectorize_text(vocab_vector.vocab, 50)
 
     # Train and test 
-    train_dataset, test_dataset = split_dataset(data_set)
+    train_dataset, test_dataset = split_dataset(data_set, 70)
+    vocab_vector = build_vocab(train_dataset.text, word_vec_filename)
+    train_dataset.vectorize_text(vocab_vector.vocab, 100)
 
-    train_dataset.vectorize_text(word_vector=all_words_vector, normalized_length=250)
-    word_vector = train_dataset.word_vector
-
-    test_dataset._word_vector = word_vector
-    test_dataset.vectorize_text(word_vector=None, normalized_length=train_dataset.max_text_length)
+    test_dataset.vectorize_text(vocab_vector.vocab, normalized_length=train_dataset.max_text_length)
 
     print("Train dataset numrecords: %d:" % (train_dataset.num_records))
     print("Test dataset numrecords: %d:" % (test_dataset.num_records))
@@ -83,23 +49,32 @@ def main(data_file_path, word_vec_filename, batch_size=50, lstmUnits=24, epochs=
     config.lstmUnits     =  lstmUnits
     config.numClasses    =  train_dataset.num_classes
     config.maxSeqLength  =  train_dataset.max_text_length
-    config.numDimensions =  word_vector.dimension
+    config.numDimensions =  vocab_vector.dimension
     config.print()
 
     # Init classifier
-    classifier = SentimentClassifier(config, word_vector.embeddings)
+    classifier = SentimentClassifier(config, vocab_vector.embeddings)
 
     # Train
+    train_accs = []
+    test_accs  = []
     for epoch_num in range(epochs):
         classifier.fit_epoch(train_dataset, epoch_num)
         train_accuracy = classifier.accuracy(train_dataset) * 100
         test_accuracy = classifier.accuracy(test_dataset) * 100
         print("%d:%.2f:%.2f" % (epoch_num, train_accuracy, test_accuracy), end='    ', flush=True)
+        train_accs.append(train_accuracy)
+        test_accs.append(test_accuracy)
         #print("Epoch Num: %d" % epoch_num)
         #print("Train Accuracy = %.2f %%" % (classifier.accuracy(train_dataset) * 100))
         #print("Test  Accuracy = %.2f %%" % (classifier.accuracy(test_dataset) * 100))
 
     print("")
+
+    print("Train accuracies:")
+    print(train_accs)
+    print("Test Accuracies:")
+    print(test_accs)
 
 if __name__ == "__main__":
     ''' Start the program here '''

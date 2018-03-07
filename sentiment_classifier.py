@@ -16,11 +16,11 @@ class SentimentClassifier:
         self._batch_size = config.batchSize
         
         # Place holders
-        self._label_placeholder = tf.placeholder(tf.float32, [config.batchSize, config.numClasses])
-        self._input_placeholder = tf.placeholder(tf.int32, [config.batchSize, config.maxSeqLength])
+        self._label_placeholder = tf.placeholder(tf.float32, [self._batch_size, config.numClasses])
+        self._input_placeholder = tf.placeholder(tf.int32, [self._batch_size, config.maxSeqLength])
 
         # For the data
-        data = tf.Variable(tf.zeros([config.batchSize, config.maxSeqLength, config.numDimensions]),dtype=tf.float32)
+        #data = tf.Variable(tf.zeros([self._batch_size, config.maxSeqLength, config.numDimensions]),dtype=tf.float32)
         data = tf.nn.embedding_lookup(WordVectorEmbeddings, self._input_placeholder)
        
         # LSTM
@@ -45,13 +45,6 @@ class SentimentClassifier:
         self._sess  = tf.InteractiveSession()
         self._saver = tf.train.Saver()
 
-        # Setup summary log
-        logdir = "tensorboard/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "/"
-        tf.summary.scalar('Loss', loss)
-        tf.summary.scalar('Accuracy', self._accuracy)
-        self._merged_summary = tf.summary.merge_all()
-        self._writer         = tf.summary.FileWriter(logdir, self._sess.graph)   
-
         # Init global vars
         self._sess.run(tf.global_variables_initializer())     
 
@@ -63,30 +56,14 @@ class SentimentClassifier:
         # Retrive saved vars
         sess           = self._sess
         optimizer      = self._optimizer
-        merged_summary = self._merged_summary
-        writer         = self._writer
         input_data     = self._input_placeholder
         labels         = self._label_placeholder
-        saver          = self._saver        
         
         train_data.reset_epoch()
         while not train_data.epoch_completed:
             nextBatch, nextBatchLabels = train_data.get_next_batch(self._batch_size)
             sess.run(optimizer, {input_data: nextBatch, labels: nextBatchLabels})
-        #    print('.', end='', flush=True) # to make sure something is happening
-           
-        #     #Write summary to Tensorboard
-        #     if (i % 50 == 0):
-        #         summary = sess.run(merged_summary, {input_data: nextBatch, labels: nextBatchLabels})
-        #         writer.add_summary(summary, i)
-
-        #      #Save the network every 10,000 training iterations
-        #     if (i % 100 == 0 and i != 0):
-        #         save_path = saver.save(sess, "models/pretrained_lstm.ckpt", global_step=i)
-        #         print("\nsaved to %s" % save_path)
-        # writer.close()
-
-        # time_taken = time.time() - start_time
+       
         # print("\nTraining completed: %.3f secs!" % (time_taken))
         
         return None
