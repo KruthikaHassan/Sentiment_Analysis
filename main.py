@@ -93,19 +93,30 @@ def main(data_file_path, word_vec_filename, saved=True, batch_size=50, lstmUnits
     classifier = SentimentClassifier(config, vocab_vector.embeddings)
 
     # Train
+    val_accs = [0 for i in range(10)]
     train_accs = []
     test_accs  = []
     for epoch_num in range(epochs):
         classifier.fit_epoch(train_dataset)
         
-        if epoch_num % 1 == 0:
-            train_accuracy = classifier.accuracy(train_dataset) * 100
-            test_accuracy = classifier.accuracy(test_dataset) * 100
-            print("%d:%.2f:%.2f" % (epoch_num, train_accuracy, test_accuracy), end=' ', flush=True)
-            train_accs.append(train_accuracy)
-            test_accs.append(test_accuracy)
+        train_accuracy = classifier.accuracy(train_dataset) * 100
+        test_accuracy = classifier.accuracy(test_dataset) * 100
+        print("%d:%.2f:%.2f" % (epoch_num, train_accuracy, test_accuracy), end=' ', flush=True)
+        train_accs.append(train_accuracy)
+        test_accs.append(test_accuracy)
+        
+        max_indx = np.argmax(val_accs)
+        if test_accuracy > val_accs[max_indx]:
+            val_accs[max_indx] = test_accuracy
         else:
-            print(".", end=' ', flush=True)
+            min_indx = np.argmin(val_accs)
+            if test_accuracy > val_accs[min_indx]:
+                val_accs[min_indx] = test_accuracy
+            elif test_accuracy < 85.0: # Try to get upto desired accuracy
+                print(".", end=' ')
+            else:
+                print("\nTerminating training:", val_accs)
+                break
 
     print("")
 
