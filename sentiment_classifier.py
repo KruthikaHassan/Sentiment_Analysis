@@ -51,7 +51,7 @@ class SentimentClassifier:
         time_taken = time.time() - start_time
         print("Classifier Initialized: %.3f secs!" % (time_taken))
 
-    def fit_epoch(self, train_data, epoch_num):
+    def fit_epoch(self, train_data):
         
         # Retrive saved vars
         sess           = self._sess
@@ -63,6 +63,7 @@ class SentimentClassifier:
         while not train_data.epoch_completed:
             nextBatch, nextBatchLabels = train_data.get_next_batch(self._batch_size)
             sess.run(optimizer, {input_data: nextBatch, labels: nextBatchLabels})
+            #print('.', end='', flush=True)
        
         # print("\nTraining completed: %.3f secs!" % (time_taken))
         

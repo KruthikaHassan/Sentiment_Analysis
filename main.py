@@ -81,6 +81,7 @@ def main(data_file_path, word_vec_filename, saved=True, batch_size=50, lstmUnits
 
     # Set some config params for this dataset
     config = Configuration()
+    config.epochs        =  epochs
     config.batchSize     =  batch_size
     config.lstmUnits     =  lstmUnits
     config.numClasses    =  train_dataset.num_classes
@@ -95,12 +96,16 @@ def main(data_file_path, word_vec_filename, saved=True, batch_size=50, lstmUnits
     train_accs = []
     test_accs  = []
     for epoch_num in range(epochs):
-        classifier.fit_epoch(train_dataset, epoch_num)
-        train_accuracy = classifier.accuracy(train_dataset) * 100
-        test_accuracy = classifier.accuracy(test_dataset) * 100
-        print("%d:%.2f:%.2f" % (epoch_num, train_accuracy, test_accuracy), end='    ', flush=True)
-        train_accs.append(train_accuracy)
-        test_accs.append(test_accuracy)
+        classifier.fit_epoch(train_dataset)
+        
+        if epoch_num % 1 == 0:
+            train_accuracy = classifier.accuracy(train_dataset) * 100
+            test_accuracy = classifier.accuracy(test_dataset) * 100
+            print("%d:%.2f:%.2f" % (epoch_num, train_accuracy, test_accuracy), end=' ', flush=True)
+            train_accs.append(train_accuracy)
+            test_accs.append(test_accuracy)
+        else:
+            print(".", end=' ', flush=True)
 
     print("")
 
@@ -123,4 +128,4 @@ if __name__ == "__main__":
     batch_size = int(sys.argv[5])
     
     # Run the program!
-    main(data_file_path, word_vec_filename, True, batch_size, lstmUnits, epochs)
+    main(data_file_path, word_vec_filename, False, batch_size, lstmUnits, epochs)

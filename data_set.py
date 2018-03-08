@@ -167,7 +167,7 @@ class LoadCSV(DataSet):
         for row in data[1:]:
             line = self.cleanup(row[-1])
             text.append(line)
-            labels.append(self.get_vect_label(row[1]))
+            labels.append(self.get_vect_label(row[0]))
         return text, labels
 
     def get_vect_label(self, label_text):
