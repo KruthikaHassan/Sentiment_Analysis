@@ -125,7 +125,7 @@ def main(data_file_path, word_vec_filename, saved=True, batch_size=50, lstmUnits
             min_indx = np.argmin(val_accs)
             if val_accuracy > val_accs[min_indx]:
                 val_accs[min_indx] = val_accuracy
-            elif val_accuracy < 85.0: # Try to get upto desired accuracy
+            elif val_accuracy < 77.0: # Try to get upto desired accuracy
                 print(".", end=' ')
             else:
                 print("\nTerminating training:", val_accs)
