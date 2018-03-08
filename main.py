@@ -9,6 +9,8 @@ __email__ = "kruthika@uw.edu"
 import sys
 import numpy as np
 import random
+import pickle
+import time
 from vocab_vectors import VocabVector
 from vocab_vectors import build_vocab
 from data_set import DataSet
@@ -23,22 +25,56 @@ class Configuration:
         for item in attrs:
             print("%s : %s" % (item, attrs[item]))
 
+def save_obj(obj, filename):
+    ''' Saves the dataset so we can load it next time '''
+    with open(filename, 'wb') as output:
+        pickle.dump(obj, output, pickle.HIGHEST_PROTOCOL)
+
+def load_obj(filename):
+    with open(filename, 'rb') as input:
+        obj = pickle.load(input)
+    return obj
 
 
-def main(data_file_path, word_vec_filename, batch_size=50, lstmUnits=24, epochs=10):
+def main(data_file_path, word_vec_filename, saved=True, batch_size=50, lstmUnits=24, epochs=10):
     """ Main function """
 
-    # Raw dataset
-    data_set = LoadCSV(data_file_path)
-    #vocab_vector = build_vocab(data_set.text)
-    #data_set.vectorize_text(vocab_vector.vocab, 50)
+    train_set_save_file    = 'train_dataset.pkl'
+    test_set_save_file     = 'test_dataset.pkl'
+    vocab_vector_save_file = 'vocab_vector.pkl'
 
-    # Train and test 
-    train_dataset, test_dataset = split_dataset(data_set, 70)
-    vocab_vector = build_vocab(train_dataset.text, word_vec_filename)
-    train_dataset.vectorize_text(vocab_vector.vocab, 100)
+    if saved:
+        start_time = time.time()
+        print("Loading Train :", train_set_save_file)
+        train_dataset = load_obj(train_set_save_file)
+        time_taken = time.time() - start_time
+        print("%s Loaded: %.3f secs!" % (train_set_save_file, time_taken))
 
-    test_dataset.vectorize_text(vocab_vector.vocab, normalized_length=train_dataset.max_text_length)
+        start_time = time.time()
+        print("Loading Test :", vocab_vector_save_file)
+        vocab_vector  = load_obj(vocab_vector_save_file)
+        time_taken = time.time() - start_time
+        print("%s Loaded: %.3f secs!" % (vocab_vector_save_file, time_taken))
+
+        start_time = time.time()
+        print("Loading Vocab :", test_set_save_file)
+        test_dataset  = load_obj(test_set_save_file)
+        time_taken = time.time() - start_time
+        print("%s Loaded: %.3f secs!" % (test_set_save_file, time_taken))
+    else:
+        # Raw dataset
+        data_set = LoadCSV(data_file_path)
+
+        # Train and test 
+        train_dataset, test_dataset = split_dataset(data_set, 70)
+        vocab_vector = build_vocab(train_dataset.text, word_vec_filename)
+
+        train_dataset.vectorize_text(vocab_vector.vocab, 100)
+        test_dataset.vectorize_text(vocab_vector.vocab, normalized_length=train_dataset.max_text_length)
+
+        save_obj(train_dataset, train_set_save_file)
+        save_obj(test_dataset, test_set_save_file)
+        save_obj(vocab_vector, vocab_vector_save_file)
 
     print("Train dataset numrecords: %d:" % (train_dataset.num_records))
     print("Test dataset numrecords: %d:" % (test_dataset.num_records))
@@ -65,9 +101,6 @@ def main(data_file_path, word_vec_filename, batch_size=50, lstmUnits=24, epochs=
         print("%d:%.2f:%.2f" % (epoch_num, train_accuracy, test_accuracy), end='    ', flush=True)
         train_accs.append(train_accuracy)
         test_accs.append(test_accuracy)
-        #print("Epoch Num: %d" % epoch_num)
-        #print("Train Accuracy = %.2f %%" % (classifier.accuracy(train_dataset) * 100))
-        #print("Test  Accuracy = %.2f %%" % (classifier.accuracy(test_dataset) * 100))
 
     print("")
 
@@ -90,4 +123,4 @@ if __name__ == "__main__":
     batch_size = int(sys.argv[5])
     
     # Run the program!
-    main(data_file_path, word_vec_filename, batch_size, lstmUnits, epochs)
+    main(data_file_path, word_vec_filename, True, batch_size, lstmUnits, epochs)

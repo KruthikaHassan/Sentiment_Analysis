@@ -4,6 +4,7 @@ import csv
 import re
 import numpy as np
 import random
+import pickle
 from vocab_vectors import VocabVector
 
 class DataSet(object):
@@ -142,6 +143,7 @@ class DataSet(object):
         # Set vectorized as true
         self._isVectorized = True
     
+
 #################################################### Child class to laod data from file #######################################################
     
 class LoadCSV(DataSet):
@@ -170,19 +172,19 @@ class LoadCSV(DataSet):
 
     def get_vect_label(self, label_text):
 
-        # if label_text == 'negative':
-        #     return [1, 0]
-        # else:
-        #     return [0, 1]
+        if int(label_text) == 1:
+            return [1, 0]
+        else:
+            return [0, 1]
 
-        if label_text == 'positive':
-            return [1, 0, 0, 0]
-        elif label_text == 'negative':
-            return [0, 1, 0, 0]
-        elif label_text == 'neutral':
-            return [0, 0, 1, 0]
-        elif label_text == 'irrelevant':
-            return [0, 0, 0, 1]
+        # if label_text == 'positive':
+        #     return [1, 0, 0, 0]
+        # elif label_text == 'negative':
+        #     return [0, 1, 0, 0]
+        # elif label_text == 'neutral':
+        #     return [0, 0, 1, 0]
+        # elif label_text == 'irrelevant':
+        #     return [0, 0, 0, 1]
 
 
         # "toxic","severe_toxic","obscene","threat","insult","identity_hate"

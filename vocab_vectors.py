@@ -10,7 +10,7 @@ class VocabVector(object):
         self._vocab      = vocab
         self._embeddings = embeddings
         self._dimension  = len(embeddings[0])
-        
+
     @property
     def vocab(self):
         return self._vocab
@@ -22,6 +22,10 @@ class VocabVector(object):
     @property
     def dimension(self):
         return self._dimension
+    
+    @property
+    def num_records(self):
+        return len(self._vocab)
 
 #########################################################################################################
 
@@ -76,18 +80,9 @@ def build_vocab(text, glove_file=None, threshold=5):
     sorted_words = sorted(required_vocab, key=lambda k: required_vocab[k], reverse=True)
 
     if glove_file:
-        glv = __load_glove_vectors(glove_file, sorted_words)
-        vocab, embds = ['<MASK>'], [[0.0 for i in range(glv.dimension)]]
-
-        unkn_indx = glv.vocab.index('<unknown>')
-        for word in sorted_words[1:]:
-            try:
-                indx = glv.vocab.index(word)
-            except ValueError:
-                indx = unkn_indx 
-            vocab.append(word)
-            embds.append(glv.embeddings[indx])
-
+        vocab_vector = __load_glove_vectors(glove_file, sorted_words)
+        vocab_vector._vocab.insert(0, '<MASK>')
+        vocab_vector._embeddings.insert(0, [0.0 for i in range(vocab_vector.dimension)])
     else:
         # binary embeddings
         num_words = len(sorted_words)
@@ -103,11 +98,14 @@ def build_vocab(text, glove_file=None, threshold=5):
             vocab.append(word)
             embds.append(bin_embd)
             num_words -= 1
+            print('.', end='', flush=True)
+        
+        vocab_vector = VocabVector(vocab, embds)
 
     time_taken = time.time() - start_time
-    print("Vocabulary built: %.3f secs!" % (time_taken))
+    print("\nVocabulary built: %.3f secs!" % (time_taken))
 
-    print("Total words:", len(vocab))
+    print("Total words:", vocab_vector.num_records)
     print("Words not included:", required_vocab['<unknown>'])
 
-    return VocabVector(vocab, embds)
+    return vocab_vector

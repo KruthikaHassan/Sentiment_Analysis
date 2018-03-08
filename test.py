@@ -45,8 +45,8 @@ def cleanup(string):
 
 
 
-file = open('test_corpus.csv')
-clean_file  = open('corpus_tokens.txt', 'w')
+file = open('SAD.csv')
+clean_file  = open('sad_tokens.txt', 'w')
 
 data  = [row for row in csv.reader(file)]
 ww = 0
