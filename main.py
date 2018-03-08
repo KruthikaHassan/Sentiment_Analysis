@@ -40,6 +40,7 @@ def main(data_file_path, word_vec_filename, saved=True, batch_size=50, lstmUnits
     """ Main function """
 
     train_set_save_file    = 'train_dataset.pkl'
+    val_set_save_file      = 'val_dataset.pkl'
     test_set_save_file     = 'test_dataset.pkl'
     vocab_vector_save_file = 'vocab_vector.pkl'
 
@@ -51,13 +52,19 @@ def main(data_file_path, word_vec_filename, saved=True, batch_size=50, lstmUnits
         print("%s Loaded: %.3f secs!" % (train_set_save_file, time_taken))
 
         start_time = time.time()
+        print("Loading Validation :", vocab_vector_save_file)
+        val_dataset  = load_obj(val_set_save_file)
+        time_taken = time.time() - start_time
+        print("%s Loaded: %.3f secs!" % (val_set_save_file, time_taken))
+
+        start_time = time.time()
         print("Loading Test :", vocab_vector_save_file)
         vocab_vector  = load_obj(vocab_vector_save_file)
         time_taken = time.time() - start_time
         print("%s Loaded: %.3f secs!" % (vocab_vector_save_file, time_taken))
 
         start_time = time.time()
-        print("Loading Vocab :", test_set_save_file)
+        print("Loading Test :", test_set_save_file)
         test_dataset  = load_obj(test_set_save_file)
         time_taken = time.time() - start_time
         print("%s Loaded: %.3f secs!" % (test_set_save_file, time_taken))
@@ -66,17 +73,21 @@ def main(data_file_path, word_vec_filename, saved=True, batch_size=50, lstmUnits
         data_set = LoadCSV(data_file_path)
 
         # Train and test 
-        train_dataset, test_dataset = split_dataset(data_set, 70)
+        train_dataset, test_dataset = split_dataset(data_set, 85)
+        train_dataset, val_dataset  = split_dataset(train_dataset, 80)
         vocab_vector = build_vocab(train_dataset.text, word_vec_filename)
 
         train_dataset.vectorize_text(vocab_vector.vocab, 100)
+        val_dataset.vectorize_text(vocab_vector.vocab, normalized_length=train_dataset.max_text_length)
         test_dataset.vectorize_text(vocab_vector.vocab, normalized_length=train_dataset.max_text_length)
 
         save_obj(train_dataset, train_set_save_file)
+        save_obj(val_dataset, val_set_save_file)
         save_obj(test_dataset, test_set_save_file)
         save_obj(vocab_vector, vocab_vector_save_file)
 
     print("Train dataset numrecords: %d:" % (train_dataset.num_records))
+    print("Validation dataset numrecords: %d:" % (val_dataset.num_records))
     print("Test dataset numrecords: %d:" % (test_dataset.num_records))
 
     # Set some config params for this dataset
@@ -94,25 +105,27 @@ def main(data_file_path, word_vec_filename, saved=True, batch_size=50, lstmUnits
 
     # Train
     val_accs = [0 for i in range(10)]
-    train_accs = []
-    test_accs  = []
+    val_acc_file = open('val_accs.txt', 'w')
+    train_acc_file  = open('train_accs.txt', 'w')
     for epoch_num in range(epochs):
         classifier.fit_epoch(train_dataset)
         
         train_accuracy = classifier.accuracy(train_dataset) * 100
-        test_accuracy = classifier.accuracy(test_dataset) * 100
-        print("%d:%.2f:%.2f" % (epoch_num, train_accuracy, test_accuracy), end=' ', flush=True)
-        train_accs.append(train_accuracy)
-        test_accs.append(test_accuracy)
+        val_accuracy = classifier.accuracy(val_dataset) * 100
+        print("%d:%.2f:%.2f" % (epoch_num, train_accuracy, val_accuracy), end=' ', flush=True)
+        
+        
+        train_acc_file.write("%f, " % (train_accuracy))
+        val_acc_file.write("%f, " % (val_accuracy))
         
         max_indx = np.argmax(val_accs)
-        if test_accuracy > val_accs[max_indx]:
-            val_accs[max_indx] = test_accuracy
+        if val_accuracy > val_accs[max_indx]:
+            val_accs[max_indx] = val_accuracy
         else:
             min_indx = np.argmin(val_accs)
-            if test_accuracy > val_accs[min_indx]:
-                val_accs[min_indx] = test_accuracy
-            elif test_accuracy < 85.0: # Try to get upto desired accuracy
+            if val_accuracy > val_accs[min_indx]:
+                val_accs[min_indx] = val_accuracy
+            elif val_accuracy < 85.0: # Try to get upto desired accuracy
                 print(".", end=' ')
             else:
                 print("\nTerminating training:", val_accs)
@@ -120,10 +133,17 @@ def main(data_file_path, word_vec_filename, saved=True, batch_size=50, lstmUnits
 
     print("")
 
-    print("Train accuracies:")
-    print(train_accs)
-    print("Test Accuracies:")
-    print(test_accs)
+    val_predictions = classifier.predict(val_dataset)
+    val_error_stats = classifier.error_stats(val_predictions, val_dataset.labels)
+    print("validation Status: \n", val_error_stats)
+    
+    train_predictions = classifier.predict(train_dataset)
+    train_error_stats = classifier.error_stats(train_predictions, train_dataset.labels)
+    print("Train Status: \n", train_error_stats)
+    
+    test_predictions = classifier.predict(test_dataset)
+    test_error_stats = classifier.error_stats(test_predictions, test_dataset.labels)
+    print("Test Status: \n", test_error_stats)
 
 if __name__ == "__main__":
     ''' Start the program here '''

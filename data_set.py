@@ -172,7 +172,7 @@ class LoadCSV(DataSet):
 
     def get_vect_label(self, label_text):
 
-        if int(label_text) == 1:
+        if int(label_text) == 0:
             return [1, 0]
         else:
             return [0, 1]

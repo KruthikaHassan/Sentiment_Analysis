@@ -82,4 +82,47 @@ class SentimentClassifier:
             acc = sess.run(accuracy, {input_data: nextBatch, labels: nextBatchLabels})
             batch_accs.append(acc)
         return np.average(batch_accs)
+    
+    def predict(self, test_data):
+        sess           = self._sess
+        prediction     = self._prediction
+        input_data     = self._input_placeholder
+
+        test_data.reset_epoch()
+        predictions = []
+        while not test_data.epoch_completed:
+            nextBatch, nextBatchLabels = test_data.get_next_batch(self._batch_size)
+            batch_prediction = sess.run(prediction, {input_data: nextBatch})
+            for pred in batch_prediction:
+                predictions.append(pred)
+        return predictions[0:test_data.num_records]
+
+    def error_stats(self, predictions, target):
+        ''' Calculates accuracy and errors given predictions and target '''
+
+        total_records = len(predictions)
+        right_predictions = 0
+       
+        true_positives    = 0
+        false_positives   = 0
+        false_negatives   = 0
+
+        for i in range(total_records):
+            predicted_value = np.argmax(predictions[i])
+            actual_value    = np.argmax(target[i])
+            
+            if actual_value == predicted_value:
+                right_predictions += 1
+                true_positives += int(predicted_value)
+            else:
+                false_positives += int(predicted_value)
+                false_negatives += (1 - int(predicted_value))
+        
+        accuracy  = 100 * right_predictions / total_records
+        precision = 100 * true_positives / (true_positives + false_positives)
+        recall    = 100 * true_positives / (true_positives + false_negatives)
+        f1_socre  = 2 * precision * recall / (precision + recall)
+
+        return {"accuracy" : accuracy, "precision" : precision, "recall": recall, 'f1_socre':f1_socre }
+
         
