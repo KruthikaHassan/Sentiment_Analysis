@@ -33,21 +33,27 @@ class SentimentClassifier:
         bias             = tf.Variable(tf.constant(0.1, shape=[config.numClasses]))
         value            = tf.transpose(value, [1, 0, 2])
         last             = tf.gather(value, int(value.get_shape()[0]) - 1)
-        self._prediction = (tf.matmul(last, weight) + bias)
+        self._logits     = (tf.matmul(last, weight) + bias)
+        self._y_p        = tf.argmax(self._logits,1)
         
+        y_labels         = tf.argmax(self._label_placeholder,1)
+
         # Setup optimizer
-        correctPred     = tf.equal(tf.argmax(self._prediction,1), tf.argmax(self._label_placeholder,1))
+        correctPred     = tf.equal(self._y_p, y_labels)
         self._accuracy  = tf.reduce_mean(tf.cast(correctPred, tf.float32))
-        loss            = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self._prediction, labels=self._label_placeholder))
-        self._optimizer = tf.train.AdamOptimizer().minimize(loss)
+        self._loss      = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self._logits, labels=self._label_placeholder))
+        self._optimizer = tf.train.AdamOptimizer().minimize(self._loss)
         
+        # Some useful metrics
+        self._precision, self._prec_op = tf.metrics.precision(y_labels, self._y_p)
+        self._recall, self._rec_op     = tf.metrics.recall(y_labels, self._y_p)
+
         # Session
-        self._sess  = tf.InteractiveSession()
-        self._saver = tf.train.Saver()
+        self._sess  = tf.Session()
 
         # Init global vars
         self._sess.run(tf.global_variables_initializer())     
-
+        self._sess.run(tf.local_variables_initializer())
         time_taken = time.time() - start_time
         print("Classifier Initialized: %.3f secs!" % (time_taken))
 
@@ -85,44 +91,54 @@ class SentimentClassifier:
     
     def predict(self, test_data):
         sess           = self._sess
-        prediction     = self._prediction
+        prediction     = self._y_p
         input_data     = self._input_placeholder
-
-        test_data.reset_epoch()
+        
         predictions = []
+        test_data.reset_epoch()
         while not test_data.epoch_completed:
-            nextBatch, nextBatchLabels = test_data.get_next_batch(self._batch_size)
-            batch_prediction = sess.run(prediction, {input_data: nextBatch})
-            for pred in batch_prediction:
-                predictions.append(pred)
+            nextBatch, _ = test_data.get_next_batch(self._batch_size)
+            b_pred = sess.run(prediction , {input_data: nextBatch})
+            predictions += list(b_pred)
+
         return predictions[0:test_data.num_records]
 
-    def error_stats(self, predictions, target):
-        ''' Calculates accuracy and errors given predictions and target '''
+    def metrics(self, test_data):
+        sess           = self._sess
+        input_data     = self._input_placeholder
+        labels         = self._label_placeholder
+        precision      = self._precision
+        recall         = self._recall
+        accuracy       = self._accuracy
+        loss           = self._loss
 
-        total_records = len(predictions)
-        right_predictions = 0
-       
-        true_positives    = 0
-        false_positives   = 0
-        false_negatives   = 0
+        prec_op        = self._prec_op
+        rec_op         = self._rec_op
 
-        for i in range(total_records):
-            predicted_value = np.argmax(predictions[i])
-            actual_value    = np.argmax(target[i])
+        accs        = []
+        losses      = []
+
+        test_data.reset_epoch()
+        while not test_data.epoch_completed:
+            nextBatch, nextBatchLabels = test_data.get_next_batch(self._batch_size)
             
-            if actual_value == predicted_value:
-                right_predictions += 1
-                true_positives += int(predicted_value)
-            else:
-                false_positives += int(predicted_value)
-                false_negatives += (1 - int(predicted_value))
+            b_pred, b_loss, b_acc = sess.run((self._y_p, loss, accuracy), {input_data: nextBatch, labels:nextBatchLabels})
+            sess.run([prec_op, rec_op], {labels:nextBatchLabels, self._y_p:b_pred})
+            
+            accs.append(b_acc)
+            losses.append(b_loss)
         
-        accuracy  = 100 * right_predictions / total_records
-        precision = 100 * true_positives / (true_positives + false_positives)
-        recall    = 100 * true_positives / (true_positives + false_negatives)
-        f1_socre  = 2 * precision * recall / (precision + recall)
+        prec, rec = sess.run([precision, recall])
+        f1s  = 2 * prec * rec / ( prec + rec )
 
-        return {"accuracy" : accuracy, "precision" : precision, "recall": recall, 'f1_socre':f1_socre }
+        ret_vals = {
+            'accuracy'    : np.average(accs),
+            'precision'   : prec,
+            'recall'      : rec,
+            'f1_score'    : f1s,
+            'loss'        : np.average(losses)
+        }
+
+        return ret_vals
 
         

@@ -105,18 +105,34 @@ def main(data_file_path, word_vec_filename, saved=True, batch_size=50, lstmUnits
 
     # Train
     val_accs = [0 for i in range(10)]
+    
     val_acc_file = open('val_accs.txt', 'w')
     train_acc_file  = open('train_accs.txt', 'w')
+    
+    val_lss_file = open('val_loss.txt', 'w')
+    train_lss_file  = open('train_loss.txt', 'w')
+    
     for epoch_num in range(epochs):
         classifier.fit_epoch(train_dataset)
         
-        train_accuracy = classifier.accuracy(train_dataset) * 100
-        val_accuracy = classifier.accuracy(val_dataset) * 100
-        print("%d:%.2f:%.2f" % (epoch_num, train_accuracy, val_accuracy), end=' ', flush=True)
+        t_m = classifier.metrics(train_dataset)
+        v_m = classifier.metrics(val_dataset)
+
+        train_accuracy =  t_m['accuracy'] * 100
+        val_accuracy   =  v_m['accuracy'] * 100
+
+        train_loss     = t_m['loss'] * 100
+        val_loss       =  v_m['loss'] * 100
+
+        
+        print("%d  %.2f||%.2f  %.2f||%.2f" % (epoch_num, train_accuracy, val_accuracy, train_loss, val_loss), end='\n', flush=True)
         
         
         train_acc_file.write("%f, " % (train_accuracy))
         val_acc_file.write("%f, " % (val_accuracy))
+
+        train_lss_file.write("%f, " % (train_loss))
+        val_lss_file.write("%f, " % (val_loss))
         
         max_indx = np.argmax(val_accs)
         if val_accuracy > val_accs[max_indx]:
@@ -133,17 +149,14 @@ def main(data_file_path, word_vec_filename, saved=True, batch_size=50, lstmUnits
 
     print("")
 
-    val_predictions = classifier.predict(val_dataset)
-    val_error_stats = classifier.error_stats(val_predictions, val_dataset.labels)
-    print("validation Status: \n", val_error_stats)
+    val_metrics = classifier.metrics(val_dataset)
+    print("validation Status: \n", val_metrics)
     
-    train_predictions = classifier.predict(train_dataset)
-    train_error_stats = classifier.error_stats(train_predictions, train_dataset.labels)
-    print("Train Status: \n", train_error_stats)
+    train_metrics = classifier.metrics(train_dataset)
+    print("Train Status: \n", train_metrics)
     
-    test_predictions = classifier.predict(test_dataset)
-    test_error_stats = classifier.error_stats(test_predictions, test_dataset.labels)
-    print("Test Status: \n", test_error_stats)
+    test_metrics = classifier.metrics(test_dataset)
+    print("Test Status: \n", test_metrics)
 
 if __name__ == "__main__":
     ''' Start the program here '''
@@ -159,4 +172,4 @@ if __name__ == "__main__":
     batch_size = int(sys.argv[5])
     
     # Run the program!
-    main(data_file_path, word_vec_filename, False, batch_size, lstmUnits, epochs)
+    main(data_file_path, word_vec_filename, True, batch_size, lstmUnits, epochs)
