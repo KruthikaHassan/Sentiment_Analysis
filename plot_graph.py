@@ -36,7 +36,7 @@ def main():
     plt.legend(['Validation Accuracy', 'Training Accuracy'], loc='upper left')
     plt.ylabel('Accuracy %')
     plt.xlabel('Epochs')
-    #plt.ylim(45,75)
+    plt.ylim(45,80)
     plt.show()
 
     plt.plot(epochs, val_loss, 'g')
@@ -44,7 +44,7 @@ def main():
     plt.legend(['Validation Loss', 'Training Loss'], loc='upper right')
     plt.ylabel('Loss %')
     plt.xlabel('Epochs')
-    #plt.ylim(45,75)
+    plt.ylim(45,70)
     plt.show()
 
     
