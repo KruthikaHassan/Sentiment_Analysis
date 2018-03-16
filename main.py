@@ -75,7 +75,8 @@ def main(data_file_path, word_vec_filename, saved=True, batch_size=50, lstmUnits
         # Train and test 
         train_dataset, test_dataset = split_dataset(data_set, 85)
         train_dataset, val_dataset  = split_dataset(train_dataset, 80)
-        vocab_vector = build_vocab(train_dataset.text, word_vec_filename)
+       # vocab_vector = build_vocab(train_dataset.text, word_vec_filename)
+        vocab_vector = build_vocab(train_dataset.text, None)
 
         train_dataset.vectorize_text(vocab_vector.vocab, 100)
         val_dataset.vectorize_text(vocab_vector.vocab, normalized_length=train_dataset.max_text_length)
@@ -172,4 +173,4 @@ if __name__ == "__main__":
     batch_size = int(sys.argv[5])
     
     # Run the program!
-    main(data_file_path, word_vec_filename, True, batch_size, lstmUnits, epochs)
+    main(data_file_path, word_vec_filename, False, batch_size, lstmUnits, epochs)
