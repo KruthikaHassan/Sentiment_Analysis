@@ -172,4 +172,4 @@ if __name__ == "__main__":
     batch_size = int(sys.argv[5])
     
     # Run the program!
-    main(data_file_path, word_vec_filename, True, batch_size, lstmUnits, epochs)
+    main(data_file_path, word_vec_filename, False, batch_size, lstmUnits, epochs)
